@@ -144,7 +144,7 @@ async function seed() {
     await client.query("TRUNCATE logs, reminders, steps, analyses, users CASCADE");
     await client.query("ALTER SEQUENCE analysis_code_seq RESTART WITH 2001");
 
-    const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 12);
     const userIds = [];
     for (const u of USERS) {
       const { rows } = await client.query(

@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 
 const authRoutes = require("./routes/auth.routes");
 const usersRoutes = require("./routes/users.routes");
@@ -10,12 +11,20 @@ const logsRoutes = require("./routes/logs.routes");
 const statsRoutes = require("./routes/stats.routes");
 const pushRoutes = require("./routes/push.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
+const { apiLimiter } = require("./middleware/rateLimits");
 const { startReminderScheduler } = require("./scheduler");
 
 const app = express();
 
+// Render (et la plupart des PaaS) placent l'app derrière un reverse proxy : sans
+// ça, req.ip vaudrait toujours l'IP du proxy et le rate limiting toucherait tout
+// le monde d'un coup au lieu de cibler l'IP réelle de l'appelant.
+app.set("trust proxy", 1);
+
+app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
+app.use("/api", apiLimiter);
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 

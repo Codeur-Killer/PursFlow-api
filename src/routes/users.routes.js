@@ -63,7 +63,7 @@ router.post(
       throw new ApiError(400, "Nom, email et mot de passe sont requis.");
     }
     const finalRole = ROLES.includes(role) ? role : "Analyste";
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     const { rows } = await query(
       `INSERT INTO users (name, initials, email, password_hash, role)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -81,7 +81,7 @@ router.patch(
     if (role && !ROLES.includes(role)) throw new ApiError(400, "Rôle invalide.");
     if (password && password.length < 8) throw new ApiError(400, "Le mot de passe doit contenir au moins 8 caractères.");
 
-    const passwordHash = password ? await bcrypt.hash(password, 10) : null;
+    const passwordHash = password ? await bcrypt.hash(password, 12) : null;
 
     const { rows } = await query(
       `UPDATE users SET

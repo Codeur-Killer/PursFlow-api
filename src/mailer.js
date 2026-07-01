@@ -135,4 +135,62 @@ async function sendReminderEmail({ reminder, analysis, step, to }) {
   });
 }
 
-module.exports = { sendMail, sendReminderEmail };
+function resetPasswordEmailHtml({ name, resetUrl }) {
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Réinitialisation du mot de passe</title>
+</head>
+<body style="margin:0;padding:0;background-color:#E8E8E4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#E8E8E4;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #D4D4CE;">
+          <tr>
+            <td style="padding:28px 40px 24px;border-bottom:1px solid #E8E8E4;">
+              <span style="font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;letter-spacing:0.08em;color:#1A1A18;text-transform:uppercase;">PursFlow</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px 32px;">
+              <h1 style="margin:0 0 16px;font-size:20px;font-weight:600;color:#1A1A18;">Réinitialisation du mot de passe</h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#3A3A36;line-height:1.7;">
+                Bonjour ${name}, une demande de réinitialisation de mot de passe a été effectuée pour votre compte.
+                Ce lien est valable 30 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
+              </p>
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color:#1A1A18;border-radius:4px;">
+                    <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Réinitialiser mon mot de passe</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 40px;border-top:1px solid #E8E8E4;">
+              <p style="margin:0;font-size:11px;color:#AAAAAA;line-height:1.6;">
+                PursFlow &nbsp;·&nbsp; Ne pas répondre à cet email. &nbsp;·&nbsp; © ${year}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+async function sendPasswordResetEmail({ to, name, resetUrl }) {
+  return sendMail({
+    to,
+    subject: "[PursFlow] Réinitialisation de votre mot de passe",
+    html: resetPasswordEmailHtml({ name, resetUrl }),
+  });
+}
+
+module.exports = { sendMail, sendReminderEmail, sendPasswordResetEmail };
