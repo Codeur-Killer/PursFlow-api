@@ -25,6 +25,8 @@ function serialize(row) {
     sentAt: row.sent_at,
     scheduledAt: row.scheduled_at,
     createdAt: row.created_at,
+    ownerId: row.owner_id,
+    supervisorId: row.supervisor_id,
   };
 }
 
@@ -50,7 +52,8 @@ router.get(
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await query(
-      `SELECT r.*, a.title AS analysis_title, st.name AS step_name
+      `SELECT r.*, a.title AS analysis_title, st.name AS step_name,
+              a.owner_id, a.supervisor_id
        FROM reminders r
        JOIN analyses a ON a.id = r.analysis_id
        LEFT JOIN steps st ON st.id = r.step_id
