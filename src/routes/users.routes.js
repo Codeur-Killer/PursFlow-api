@@ -77,18 +77,31 @@ router.patch(
   "/:id",
   requireRole("Administrateur"),
   asyncHandler(async (req, res) => {
-    const { name, role, active } = req.body;
+    const { name, email, role, active, password } = req.body;
     if (role && !ROLES.includes(role)) throw new ApiError(400, "Rôle invalide.");
+    if (password && password.length < 8) throw new ApiError(400, "Le mot de passe doit contenir au moins 8 caractères.");
+
+    const passwordHash = password ? await bcrypt.hash(password, 10) : null;
 
     const { rows } = await query(
       `UPDATE users SET
          name = COALESCE($1, name),
          initials = CASE WHEN $1 IS NOT NULL THEN $2 ELSE initials END,
-         role = COALESCE($3, role),
-         active = COALESCE($4, active)
-       WHERE id = $5
+         email = COALESCE($3, email),
+         role = COALESCE($4, role),
+         active = COALESCE($5, active),
+         password_hash = COALESCE($6, password_hash)
+       WHERE id = $7
        RETURNING *`,
-      [name ?? null, name ? initialsFromName(name) : null, role ?? null, active ?? null, req.params.id]
+      [
+        name ?? null,
+        name ? initialsFromName(name) : null,
+        email ? email.toLowerCase() : null,
+        role ?? null,
+        active ?? null,
+        passwordHash,
+        req.params.id,
+      ]
     );
     if (!rows[0]) throw new ApiError(404, "Utilisateur introuvable.");
     res.json(serializeUser(rows[0]));

@@ -8,6 +8,7 @@ const analysesRoutes = require("./routes/analyses.routes");
 const remindersRoutes = require("./routes/reminders.routes");
 const logsRoutes = require("./routes/logs.routes");
 const statsRoutes = require("./routes/stats.routes");
+const pushRoutes = require("./routes/push.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { startReminderScheduler } = require("./scheduler");
 
@@ -24,6 +25,7 @@ app.use("/api/analyses", analysesRoutes);
 app.use("/api/reminders", remindersRoutes);
 app.use("/api/logs", logsRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/push", pushRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
