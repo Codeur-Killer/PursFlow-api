@@ -1,49 +1,31 @@
 require("dotenv").config();
-const dns = require("dns");
-const tls = require("tls");
-const nodemailer = require("nodemailer");
 
-const GMAIL_HOST = "smtp.gmail.com";
-const GMAIL_PORT = 465;
-
-// Render n'a pas de sortie IPv6 fonctionnelle, mais le résolveur DNS interne de
-// nodemailer résout systématiquement A *et* AAAA puis choisit une adresse au hasard
-// parmi les deux (voir lib/shared/index.js#formatDNSValue) : l'option `family` du
-// transport n'est jamais consultée à cette étape, donc elle ne change rien.
-// On contourne en résolvant nous-mêmes en IPv4 et en fournissant une socket TLS
-// déjà connectée via `getSocket`, ce qui fait que nodemailer ne fait plus aucune
-// résolution DNS de son côté.
-function connectGmailIPv4(options, callback) {
-  dns.resolve4(GMAIL_HOST, (err, addresses) => {
-    if (err || !addresses.length) {
-      return callback(err || new Error(`Aucune adresse IPv4 trouvée pour ${GMAIL_HOST}`));
-    }
-    const address = addresses[Math.floor(Math.random() * addresses.length)];
-    const socket = tls.connect({ host: address, port: GMAIL_PORT, servername: GMAIL_HOST }, () => {
-      callback(null, { connection: socket, secured: true });
-    });
-    socket.once("error", callback);
-  });
-}
-
-const transporter = nodemailer.createTransport({
-  host: GMAIL_HOST,
-  port: GMAIL_PORT,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  getSocket: connectGmailIPv4,
-});
+// Render bloque le trafic sortant sur les ports SMTP (25/465/587), donc l'envoi
+// via Gmail SMTP timeout systématiquement. Resend expose une API HTTPS (port 443,
+// jamais bloqué) pour l'envoi d'emails.
+const RESEND_API_URL = "https://api.resend.com/emails";
 
 async function sendMail({ to, subject, html }) {
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-    to,
-    subject,
-    html,
+  const res = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: process.env.EMAIL_FROM,
+      to,
+      subject,
+      html,
+    }),
   });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Échec d'envoi Resend (${res.status}) : ${body}`);
+  }
+
+  return res.json();
 }
 
 const LEVEL_LABEL = { amber: "Avant échéance", blue: "Information", red: "Retard" };
@@ -153,4 +135,4 @@ async function sendReminderEmail({ reminder, analysis, step, to }) {
   });
 }
 
-module.exports = { transporter, sendMail, sendReminderEmail };
+module.exports = { sendMail, sendReminderEmail };

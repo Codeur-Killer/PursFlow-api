@@ -30,8 +30,8 @@ il efface toutes les données existantes.
 | `JWT_EXPIRES_IN` | Durée de validité du jeton (ex. `7d`) |
 | `PORT` | Port d'écoute de l'API |
 | `CORS_ORIGIN` | Origine autorisée pour le frontend |
-| `EMAIL_USER` / `EMAIL_PASS` | Compte Gmail + mot de passe d'application utilisés pour l'envoi des alertes |
-| `EMAIL_FROM` | Adresse affichée comme expéditeur |
+| `RESEND_API_KEY` | Clé API Resend (resend.com) utilisée pour l'envoi des alertes par email |
+| `EMAIL_FROM` | Adresse affichée comme expéditeur (doit appartenir à un domaine vérifié sur Resend, sauf `onboarding@resend.dev` en test) |
 | `REMINDER_SWEEP_INTERVAL_MS` | Fréquence du balayage des rappels à envoyer par email (def. 60000) |
 
 ## Alertes par email
