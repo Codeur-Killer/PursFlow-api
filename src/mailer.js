@@ -1,16 +1,40 @@
 require("dotenv").config();
+const dns = require("dns");
+const tls = require("tls");
 const nodemailer = require("nodemailer");
 
+const GMAIL_HOST = "smtp.gmail.com";
+const GMAIL_PORT = 465;
+
+// Render n'a pas de sortie IPv6 fonctionnelle, mais le résolveur DNS interne de
+// nodemailer résout systématiquement A *et* AAAA puis choisit une adresse au hasard
+// parmi les deux (voir lib/shared/index.js#formatDNSValue) : l'option `family` du
+// transport n'est jamais consultée à cette étape, donc elle ne change rien.
+// On contourne en résolvant nous-mêmes en IPv4 et en fournissant une socket TLS
+// déjà connectée via `getSocket`, ce qui fait que nodemailer ne fait plus aucune
+// résolution DNS de son côté.
+function connectGmailIPv4(options, callback) {
+  dns.resolve4(GMAIL_HOST, (err, addresses) => {
+    if (err || !addresses.length) {
+      return callback(err || new Error(`Aucune adresse IPv4 trouvée pour ${GMAIL_HOST}`));
+    }
+    const address = addresses[Math.floor(Math.random() * addresses.length)];
+    const socket = tls.connect({ host: address, port: GMAIL_PORT, servername: GMAIL_HOST }, () => {
+      callback(null, { connection: socket, secured: true });
+    });
+    socket.once("error", callback);
+  });
+}
+
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: GMAIL_HOST,
+  port: GMAIL_PORT,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // Render (et d'autres PaaS) n'ont pas toujours de sortie IPv6 fonctionnelle ;
-  // smtp.gmail.com résout aussi en AAAA, ce qui provoque ENETUNREACH/ETIMEDOUT
-  // si on laisse Node choisir. On force l'IPv4.
-  family: 4,
+  getSocket: connectGmailIPv4,
 });
 
 async function sendMail({ to, subject, html }) {
